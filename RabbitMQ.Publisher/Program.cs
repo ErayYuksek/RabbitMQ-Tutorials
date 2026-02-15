@@ -1,39 +1,27 @@
 ﻿using RabbitMQ.Client;
 using System.Text;
 
-// Bağlantı oluşturma
-var factory = new ConnectionFactory()
-{
-    Uri = new Uri("amqp://guest:guest@localhost:5672/")
-    // CloudAMQP ise burayı değiştir:
-    // Uri = new Uri("amqps://KULLANICI:ŞİFRE@HOST/VHOST")
-};
+ConnectionFactory factory = new();
+factory.Uri = new Uri("amqp://guest:guest@localhost:5672/");
 
-// Bağlantıyı aç
-using var connection = factory.CreateConnection();
+using IConnection connection = factory.CreateConnection();
+using IModel channel = connection.CreateModel();
 
-// Kanal aç
-using var channel = connection.CreateModel();
-
-// Queue oluştur
 channel.QueueDeclare(
     queue: "example-queue",
-    durable: false,
+    durable: true,
     exclusive: false,
-    autoDelete: false,
-    arguments: null
-);
+    autoDelete: false);
 
-// Mesajı byte[] haline çevir
-byte[] message = Encoding.UTF8.GetBytes("Merhaba");
+var message = "Merhaba Eray";
+var body = Encoding.UTF8.GetBytes(message);
 
-// Mesaj gönder
 channel.BasicPublish(
     exchange: "",
     routingKey: "example-queue",
     basicProperties: null,
-    body: message
-);
+    body: body);
 
-Console.WriteLine("Mesaj gönderildi");
+Console.WriteLine("Mesaj gönderildi!");
+
 Console.ReadLine();

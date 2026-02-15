@@ -2,48 +2,33 @@
 using RabbitMQ.Client.Events;
 using System.Text;
 
-// Bağlantı oluşturma
-var factory = new ConnectionFactory()
-{
-    Uri = new Uri("amqp://guest:guest@localhost:5672/")
-    // Local ise:
-    // Uri = new Uri("amqp://guest:guest@localhost:5672/")
-};
+ConnectionFactory factory = new();
+factory.Uri = new Uri("amqp://guest:guest@localhost:5672/");
 
-// Bağlantı aç
-using var connection = factory.CreateConnection();
+using IConnection connection = factory.CreateConnection();
+using IModel channel = connection.CreateModel();
 
-// Kanal aç
-using var channel = connection.CreateModel();
-
-// Queue oluştur (Publisher ile birebir aynı olmalı!)
 channel.QueueDeclare(
     queue: "example-queue",
-    durable: false,
+    durable: true,
     exclusive: false,
-    autoDelete: false,
-    arguments: null
-);
+    autoDelete: false);
 
 Console.WriteLine("Mesaj bekleniyor...");
 
-// Consumer oluştur
 var consumer = new EventingBasicConsumer(channel);
 
-// Kuyruktan mesaj dinleme
 channel.BasicConsume(
     queue: "example-queue",
-    autoAck: true,
-    consumer: consumer
-);
+    autoAck: false,
+    consumer: consumer);
 
-// Mesaj geldiğinde çalışacak event
 consumer.Received += (model, e) =>
 {
-    var body = e.Body.ToArray();
-    var message = Encoding.UTF8.GetString(body);
+    var message = Encoding.UTF8.GetString(e.Body.Span);
+    Console.WriteLine("Gelen mesaj: " + message);
 
-    Console.WriteLine($"Gelen mesaj: {message}");
+    channel.BasicAck(e.DeliveryTag, false);
 };
 
 Console.ReadLine();
